@@ -62,8 +62,8 @@ $DevAppDetails = $DevAppDetailsJson | ConvertFrom-Json
 $ProdAppDetails = $ProdAppDetailsJson | ConvertFrom-Json
 
 # Extract the object ID
-$DevAppObjectId = $DevAppDetails[0].objectId
-$ProdAppObjectId = $ProdAppDetails[0].objectId
+$DevAppObjectId = $DevAppDetails.objectId
+$ProdAppObjectId = $ProdAppDetails.objectId
 
 ### get object IDs of ad groups
 # show group details and capture the output
