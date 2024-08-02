@@ -89,9 +89,17 @@ Write-Output $ProdGroupObjectId
 # Add app-regs to ad groups and ad groups to 'sec-azure-dataestate-landing'
 ################################################################################################################
 
-# tilføj app-reg som member til ad group
-az ad group member add --group $DisplayNameGroupDev --member-id $DevAppObjectId
-az ad group member add --group $DisplayNameGroupProd --member-id $ProdAppObjectId
+# create service principals for app-regs
+az ad sp create --id $DevAppObjectId
+az ad sp create --id $ProdAppObjectId
+
+# get object IDs of service principals
+$DevSpObjectId = az ad sp list --display-name $DisplayNameAppDev --query id --output tsv
+$ProdSpObjectId = az ad sp list --display-name $DisplayNameAppProd --query id --output tsv
+
+# tilføj service principal som member til ad group
+az ad group member add --group $DisplayNameGroupDev --member-id $DevSpObjectId
+az ad group member add --group $DisplayNameGroupProd --member-id $ProdSpObjectId
 
 # add new ad groups as members to 'sec-azure-dataestate-landing'
 az ad group member add --group sec-azure-dataestate-landing --member-id $DevGroupObjectId
