@@ -48,14 +48,30 @@ New-Variable -Name "DisplayNameAppProd" -Value "app-dataestate-landing-$projectN
 New-Variable -Name "DisplayNameGroupDev" -Value "sec-azure-dataestate-landing-$projectName-dev" -Option ReadOnly
 New-Variable -Name "DisplayNameGroupProd" -Value "sec-azure-dataestate-landing-$projectName-prod" -Option ReadOnly
 
-# create new app-reg (dev+prod)
+# create new app-regs (dev+prod)
 az ad app create --display-name $DisplayNameAppDev --sign-in-audience AzureADMyOrg 
 az ad app create --display-name $DisplayNameAppProd --sign-in-audience AzureADMyOrg
 
+# create new ad groups (dev+prod)
+az ad group create --display-name $DisplayNameGroupDev --mail-nickname $DisplayNameGroupDev --description "Data Estate Landing - app reg dev group"
+az ad group create --display-name $DisplayNameGroupProd --mail-nickname $DisplayNameGroupProd --description "Data Estate Landing - app reg prod group"
+
+# tilføj app-reg som member til ad group
+az ad group member add --group $DisplayNameGroupDev --member-id $DevAppObjectId
+az ad group member add --group $DisplayNameGroupProd --member-id $ProdAppObjectId
+
+# add new ad groups as members to 'sec-azure-dataestate-landing'
+az ad group member add --group sec-azure-dataestate-landing --member-id $DevGroupObjectId
+az ad group member add --group sec-azure-dataestate-landing --member-id $ProdGroupObjectId
+
+################################################################################################################
+# Get object IDs of app-regs and ad groups
+################################################################################################################
+
 ### get object IDs of app-regs
 # show group details and capture the output
-$DevAppDetailsJson = az ad app list --display-name $DisplayNameGroupDev | Out-String
-$ProdAppDetailsJson = az ad app list --display-name $DisplayNameGroupProd | Out-String
+$DevAppDetailsJson = az ad app list --display-name $DisplayNameAppDev | Out-String
+$ProdAppDetailsJson = az ad app list --display-name $DisplayNameAppProd | Out-String
 
 # Convert the JSON output to a PowerShell object
 $DevAppDetails = $DevAppDetailsJson | ConvertFrom-Json
@@ -78,9 +94,9 @@ $ProdGroupDetails = $ProdGroupDetailsJson | ConvertFrom-Json
 $DevGroupObjectId = $DevGroupDetails.objectId
 $ProdGroupObjectId = $ProdGroupDetails.objectId
 
-# Nye projekt-grupper skal tilføjes til gruppen "sec-azure-dataestate-landing" for at få adgang til containeren.
-az ad group member add --group sec-azure-dataestate-landing --member-id $DevGroupObjectId
-az ad group member add --group sec-azure-dataestate-landing --member-id $ProdGroupObjectId
+################################################################################################################
+# Add permissions and secrets to app-regs
+################################################################################################################
 
 # add permissions (azure storage + azure data lake)
 az ad app permission add --api $DevAppObjectId --api-permissions e406a681-f3d4-42a8-90b6-c2b029497af1 --id 03e0da56-190b-40ad-a80c-ea378c433f7f #app=azure storage, permission=user_impersonation
@@ -94,13 +110,9 @@ az ad app permission add --api $ProdAppObjectId --api-permissions 00000003-0000-
 az ad app credential reset --id $DevAppObjectId
 az ad app credential reset --id $ProdAppObjectId
 
-# opret projektspecifik ad group (dev+prod)
-az ad group create --display-name $DisplayNameGroupDev --mail-nickname $DisplayNameGroupDev --description "Data Estate Landing - app reg dev group"
-az ad group create --display-name $DisplayNameGroupProd --mail-nickname $DisplayNameGroupProd --description "Data Estate Landing - app reg prod group"
-
-# tilføj app-reg som member til ad group
-az ad group member add --group $DisplayNameGroupDev --member-id $DevAppObjectId
-az ad group member add --group $DisplayNameGroupProd --member-id $ProdAppObjectId
+################################################################################################################
+# Add users as members and owners to ad groups
+################################################################################################################
 
 ### Tilføj user(s) som member(s) til ad group, hvis UserPrincipalName parameteren indeholder værdier
 if ($UserPrincipalName -and $UserPrincipalName.Count -gt 0) {
