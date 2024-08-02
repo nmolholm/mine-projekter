@@ -48,6 +48,12 @@ New-Variable -Name "DisplayNameAppProd" -Value "app-dataestate-landing-$projectN
 New-Variable -Name "DisplayNameGroupDev" -Value "sec-azure-dataestate-landing-$projectName-dev" -Option ReadOnly
 New-Variable -Name "DisplayNameGroupProd" -Value "sec-azure-dataestate-landing-$projectName-prod" -Option ReadOnly
 
+# Output variables
+Write-Output $DisplayNameAppDev
+Write-Output $DisplayNameAppProd
+Write-Output $DisplayNameGroupDev
+Write-Output $DisplayNameGroupProd
+
 # create new app-regs (dev+prod)
 az ad app create --display-name $DisplayNameAppDev --sign-in-audience AzureADMyOrg 
 az ad app create --display-name $DisplayNameAppProd --sign-in-audience AzureADMyOrg
@@ -65,26 +71,20 @@ az ad group create --display-name $DisplayNameGroupProd --mail-nickname $Display
 $DevAppDetailsJson = az ad app list --display-name $DisplayNameAppDev | Out-String
 $ProdAppDetailsJson = az ad app list --display-name $DisplayNameAppProd | Out-String
 
-# Convert the JSON output to a PowerShell object
-$DevAppDetails = $DevAppDetailsJson | ConvertFrom-Json
-$ProdAppDetails = $ProdAppDetailsJson | ConvertFrom-Json
-
-# Extract the object ID
-$DevAppObjectId = $DevAppDetails.objectId
-$ProdAppObjectId = $ProdAppDetails.objectId
+# Convert the JSON output to a PowerShell object and extract the object ID
+$DevAppObjectId = ($DevAppDetailsJson | ConvertFrom-Json).objectId
+$ProdAppObjectId = ($ProdAppDetailsJson | ConvertFrom-Json).objectId
 
 ### get object IDs of ad groups
-# show group details and capture the output
-$DevGroupDetailsJson = az ad group show --group $DisplayNameGroupDev | Out-String
-$ProdGroupDetailsJson = az ad group show --group $DisplayNameGroupProd | Out-String
+# Convert the JSON output to a PowerShell object and extract the object ID
+$DevGroupObjectId = (az ad group show --group $DisplayNameGroupDev | Out-String | ConvertFrom-Json).objectId
+$ProdGroupObjectId = (az ad group show --group $DisplayNameGroupProd | Out-String | ConvertFrom-Json).objectId
 
-# Convert the JSON output to a PowerShell object
-$DevGroupDetails = $DevGroupDetailsJson | ConvertFrom-Json
-$ProdGroupDetails = $ProdGroupDetailsJson | ConvertFrom-Json
-
-# Extract the object ID
-$DevGroupObjectId = $DevGroupDetails.objectId
-$ProdGroupObjectId = $ProdGroupDetails.objectId
+# Output variables
+Write-Output $DevAppObjectId
+Write-Output $ProdAppObjectId
+Write-Output $DevGroupObjectId
+Write-Output $ProdGroupObjectId
 
 ################################################################################################################
 # Add app-regs to ad groups and ad groups to 'sec-azure-dataestate-landing'
