@@ -109,9 +109,6 @@ az ad app permission add --id $ProdAppObjectId --api e9f49c6b-5ce5-44c8-925d-015
 az ad app permission add --id $DevAppObjectId --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope  #app=microsoft graph, permission=User.Read
 az ad app permission add --id $ProdAppObjectId --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope #app=microsoft graph, permission=User.Read
 
-az ad app permission admin-consent --id $DevAppObjectId
-az ad app permission admin-consent --id $ProdAppObjectId
-
 ## evt. tilføj secret til app-reg
 #az ad app credential reset --id $DevAppObjectId
 #az ad app credential reset --id $ProdAppObjectId
