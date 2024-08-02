@@ -66,24 +66,18 @@ az ad group create --display-name $DisplayNameGroupProd --mail-nickname $Display
 # Get object IDs of app-regs and ad groups
 ################################################################################################################
 
-# ### get object IDs of app-regs
-# # show group details and capture the output
-# $DevAppDetailsJson = az ad app list --display-name $DisplayNameAppDev | Out-String
-# $ProdAppDetailsJson = az ad app list --display-name $DisplayNameAppProd | Out-String
+# get object IDs of app-regs
+# get list details and save the output
+$DevAppDetailsJson = az ad app list --display-name $DisplayNameAppDev | Out-String
+$ProdAppDetailsJson = az ad app list --display-name $DisplayNameAppProd | Out-String
 
-# # Convert the JSON output to a PowerShell object and extract the object ID
-# $DevAppObjectId = ($DevAppDetailsJson | ConvertFrom-Json).objectId
-# $ProdAppObjectId = ($ProdAppDetailsJson | ConvertFrom-Json).objectId
+# Convert the JSON output to a PowerShell object and extract the object ID
+$DevAppObjectId = ($DevAppDetailsJson | ConvertFrom-Json).id
+$ProdAppObjectId = ($ProdAppDetailsJson | ConvertFrom-Json).id
 
-# ### get object IDs of ad groups
-# # Convert the JSON output to a PowerShell object and extract the object ID
-# $DevGroupObjectId = (az ad group show --group $DisplayNameGroupDev | Out-String | ConvertFrom-Json).objectId
-# $ProdGroupObjectId = (az ad group show --group $DisplayNameGroupProd | Out-String | ConvertFrom-Json).objectId
-
-$DevAppObjectId = az ad app show --id 'api://$DisplayNameAppDev' --query objectId --output tsv
-$ProdAppObjectId = az ad app show --id 'api://$DisplayNameAppProd' --query objectId --output tsv
+# get object IDs of ad groups
 $DevGroupObjectId = az ad group show --group $DisplayNameGroupDev --query id --output tsv
-$ProdGroupObjectId = az ad group show --group $DisplayNameGroupProd --query id --outout tsv
+$ProdGroupObjectId = az ad group show --group $DisplayNameGroupProd --query id --output tsv
 
 # Output variables
 Write-Output $DevAppObjectId
