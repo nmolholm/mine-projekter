@@ -56,14 +56,6 @@ az ad app create --display-name $DisplayNameAppProd --sign-in-audience AzureADMy
 az ad group create --display-name $DisplayNameGroupDev --mail-nickname $DisplayNameGroupDev --description "Data Estate Landing - app reg dev group"
 az ad group create --display-name $DisplayNameGroupProd --mail-nickname $DisplayNameGroupProd --description "Data Estate Landing - app reg prod group"
 
-# tilføj app-reg som member til ad group
-az ad group member add --group $DisplayNameGroupDev --member-id $DevAppObjectId
-az ad group member add --group $DisplayNameGroupProd --member-id $ProdAppObjectId
-
-# add new ad groups as members to 'sec-azure-dataestate-landing'
-az ad group member add --group sec-azure-dataestate-landing --member-id $DevGroupObjectId
-az ad group member add --group sec-azure-dataestate-landing --member-id $ProdGroupObjectId
-
 ################################################################################################################
 # Get object IDs of app-regs and ad groups
 ################################################################################################################
@@ -95,20 +87,32 @@ $DevGroupObjectId = $DevGroupDetails.objectId
 $ProdGroupObjectId = $ProdGroupDetails.objectId
 
 ################################################################################################################
+# Add app-regs to ad groups and ad groups to 'sec-azure-dataestate-landing'
+################################################################################################################
+
+# tilføj app-reg som member til ad group
+az ad group member add --group $DisplayNameGroupDev --member-id $DevAppObjectId
+az ad group member add --group $DisplayNameGroupProd --member-id $ProdAppObjectId
+
+# add new ad groups as members to 'sec-azure-dataestate-landing'
+az ad group member add --group sec-azure-dataestate-landing --member-id $DevGroupObjectId
+az ad group member add --group sec-azure-dataestate-landing --member-id $ProdGroupObjectId
+
+################################################################################################################
 # Add permissions and secrets to app-regs
 ################################################################################################################
 
 # add permissions (azure storage + azure data lake)
-az ad app permission add --api $DevAppObjectId --api-permissions e406a681-f3d4-42a8-90b6-c2b029497af1 --id 03e0da56-190b-40ad-a80c-ea378c433f7f #app=azure storage, permission=user_impersonation
-az ad app permission add --api $ProdAppObjectId --api-permissions e406a681-f3d4-42a8-90b6-c2b029497af1 --id 03e0da56-190b-40ad-a80c-ea378c433f7f #app=azure storage, permission=user_impersonation
-az ad app permission add --api $DevAppObjectId --api-permissions e9f49c6b-5ce5-44c8-925d-015017e9f7ad --id 03e0da56-190b-40ad-a80c-ea378c433f7f #app=azure data lake, permission=user_impersonation
-az ad app permission add --api $ProdAppObjectId --api-permissions e9f49c6b-5ce5-44c8-925d-015017e9f7ad --id 03e0da56-190b-40ad-a80c-ea378c433f7f #app=azure data lake, permission=user_impersonation
-az ad app permission add --api $DevAppObjectId --api-permissions 00000003-0000-0000-c000-000000000000 --id e1fe6dd8-ba31-4d61-89e7-88639da4683d #app=microsoft graph, permission=User.Read
-az ad app permission add --api $ProdAppObjectId --api-permissions 00000003-0000-0000-c000-000000000000 --id e1fe6dd8-ba31-4d61-89e7-88639da4683d #app=microsoft graph, permission=User.Read
+az ad app permission add --id $DevAppObjectId --api e406a681-f3d4-42a8-90b6-c2b029497af1 --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f  #app=azure storage, permission=user_impersonation
+az ad app permission add --id $ProdAppObjectId --api e406a681-f3d4-42a8-90b6-c2b029497af1 --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f #app=azure storage, permission=user_impersonation
+az ad app permission add --id $DevAppObjectId --api e9f49c6b-5ce5-44c8-925d-015017e9f7ad --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f  #app=azure data lake, permission=user_impersonation
+az ad app permission add --id $ProdAppObjectId --api e9f49c6b-5ce5-44c8-925d-015017e9f7ad --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f #app=azure data lake, permission=user_impersonation
+az ad app permission add --id $DevAppObjectId --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d  #app=microsoft graph, permission=User.Read
+az ad app permission add --id $ProdAppObjectId --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d #app=microsoft graph, permission=User.Read
 
-# evt. tilføj secret til app-reg
-az ad app credential reset --id $DevAppObjectId
-az ad app credential reset --id $ProdAppObjectId
+## evt. tilføj secret til app-reg
+#az ad app credential reset --id $DevAppObjectId
+#az ad app credential reset --id $ProdAppObjectId
 
 ################################################################################################################
 # Add users as members and owners to ad groups
