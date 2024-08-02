@@ -63,7 +63,7 @@ az ad group create --display-name $DisplayNameGroupDev --mail-nickname $DisplayN
 az ad group create --display-name $DisplayNameGroupProd --mail-nickname $DisplayNameGroupProd --description "Data Estate Landing - app reg prod group"
 
 ################################################################################################################
-# Get object IDs of app-regs and ad groups
+# Get object IDs of app-regs, ad groups and service principals
 ################################################################################################################
 
 # get object IDs of app-regs
@@ -79,23 +79,29 @@ $ProdAppObjectId = ($ProdAppDetailsJson | ConvertFrom-Json).id
 $DevGroupObjectId = az ad group show --group $DisplayNameGroupDev --query id --output tsv
 $ProdGroupObjectId = az ad group show --group $DisplayNameGroupProd --query id --output tsv
 
+# create service principals for app-regs
+az ad sp create --id $DevAppObjectId
+az ad sp create --id $ProdAppObjectId
+
+# get list details and save the output 
+$DevSpDetailsJson = az ad sp list --display-name $DisplayNameAppDev | Out-String
+$ProdSpDetailsJson = az ad sp list --display-name $DisplayNameAppProd | Out-String
+
+# convert the json output to a powershell object and extract the object ID
+$DevSpObjectId = ($DevSpDetailsJson | ConvertFrom-Json).id
+$ProdSpObjectId = ($ProdSpDetailsJson | ConvertFrom-Json).id
+
 # Output variables
 Write-Output $DevAppObjectId
 Write-Output $ProdAppObjectId
 Write-Output $DevGroupObjectId
 Write-Output $ProdGroupObjectId
+Write-Output $DevSpObjectId
+Write-Output $ProdSpObjectId
 
 ################################################################################################################
 # Add app-regs to ad groups and ad groups to 'sec-azure-dataestate-landing'
 ################################################################################################################
-
-# create service principals for app-regs
-az ad sp create --id $DevAppObjectId
-az ad sp create --id $ProdAppObjectId
-
-# get object IDs of service principals
-$DevSpObjectId = az ad sp list --display-name $DisplayNameAppDev --query id --output tsv
-$ProdSpObjectId = az ad sp list --display-name $DisplayNameAppProd --query id --output tsv
 
 # tilføj service principal som member til ad group
 az ad group member add --group $DisplayNameGroupDev --member-id $DevSpObjectId
