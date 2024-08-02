@@ -80,10 +80,10 @@ az ad group create --display-name $DisplayNameGroupProd --mail-nickname $Display
 # $DevGroupObjectId = (az ad group show --group $DisplayNameGroupDev | Out-String | ConvertFrom-Json).objectId
 # $ProdGroupObjectId = (az ad group show --group $DisplayNameGroupProd | Out-String | ConvertFrom-Json).objectId
 
-$DevAppObjectId = az ad app show --id $DisplayNameAppDev --query objectId --output tsv
-$ProdAppObjectId = az ad app show --id $DisplayNameAppProd --query objectId --output tsv
-$DevGroupObjectId = az ad group show --id $DisplayNameGroupDev --query id --output tsv
-$ProdGroupObjectId = az ad group show --id $DisplayNameGroupProd --query id --outout tsv
+$DevAppObjectId = az ad app show --id 'api://$DisplayNameAppDev' --query objectId --output tsv
+$ProdAppObjectId = az ad app show --id 'api://$DisplayNameAppProd' --query objectId --output tsv
+$DevGroupObjectId = az ad group show --group $DisplayNameGroupDev --query id --output tsv
+$ProdGroupObjectId = az ad group show --group $DisplayNameGroupProd --query id --outout tsv
 
 # Output variables
 Write-Output $DevAppObjectId
