@@ -14,7 +14,7 @@ param (
 $UserInputOwner = Read-Host "Please write the email(s) of additional user(s) to be added as owner of AD groups separated by comma, type 'Y' to use default values ('mabm@seges.dk', 'ojeadm@seges.dk', 'nmhadm@seges.dk'), or type 'N' to not add any additional users"
 
 # Default values
-$defaultOwners = @('mabm@seges.dk', 'ojeadm@seges.dk', 'nmhadm@seges.dk')
+$defaultOwners = @('mimh@seges.dk', 'nikolajmolholm@gmail.com')
 
 # Determine the action based on user input
 switch ($UserInputOwner) {
@@ -138,12 +138,9 @@ if ($UserPrincipalName -and $UserPrincipalName.Count -gt 0) {
 		
 		# show user details and capture the output
 		$UserDetailsJson = az ad user show --id $Name | Out-String
-		
-		# Convert the JSON output to a PowerShell object
-		$UserDetails = $UserDetailsJson | ConvertFrom-Json
 
 		# Extract the object ID
-		$UserObjectId = $UserDetails.objectId
+        $UserObjectId = ($UserDetailsJson | ConvertFrom-Json).id
 	
 		# use object id when adding user as a member to ad groups
         az ad group member add --group $DisplayNameGroupDev --member-id $UserObjectId
@@ -164,11 +161,8 @@ if ($OwnerPrincipalName -and $OwnerPrincipalName.Count -gt 0) {
 		# show user details and capture the output
 		$OwnerDetailsJson = az ad user show --id $Name | Out-String
 		
-		# Convert the JSON output to a PowerShell object
-		$OwnerDetails = $OwnerDetailsJson | ConvertFrom-Json
-
 		# Extract the object ID
-		$OwnerObjectId = $OwnerDetails.objectId
+		$OwnerObjectId = ($OwnerDetailsJson | ConvertFrom-Json).id
 	
 		# use object id when adding user as a member to ad groups
         az ad group owner add --group $DisplayNameGroupDev --owner-object-id $OwnerObjectId
