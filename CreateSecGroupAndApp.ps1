@@ -39,8 +39,8 @@ switch ($UserInputOwner) {
 }
 
 # Output the final list of owners
-Write-Host "Final list of owners:"
-$OwnerPrincipalName | ForEach-Object { Write-Host $_ }ut
+Write-Output "Final list of owners:"
+$OwnerPrincipalName | ForEach-Object { Write-Output $_ }
 
 # create displayname variables for app-regs and ad groups from input argument
 New-Variable -Name "DisplayNameAppDev" -Value "app-dataestate-landing-$projectName-dev" -Option ReadOnly
