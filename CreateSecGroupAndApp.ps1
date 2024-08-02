@@ -102,19 +102,15 @@ az ad group member add --group sec-azure-dataestate-landing --member-id $ProdGro
 ################################################################################################################
 
 # add permissions (azure storage + azure data lake)
-az ad app permission grant --id $DevAppObjectId --api e406a681-f3d4-42a8-90b6-c2b029497af1
-az ad app permission grant --id $ProdAppObjectId --api e406a681-f3d4-42a8-90b6-c2b029497af1
-az ad app permission grant --id $DevAppObjectId --api e9f49c6b-5ce5-44c8-925d-015017e9f7ad
-az ad app permission grant --id $ProdAppObjectId --api e9f49c6b-5ce5-44c8-925d-015017e9f7ad
-az ad app permission grant --id $DevAppObjectId --api 00000003-0000-0000-c000-000000000000
-az ad app permission grant --id $ProdAppObjectId --api 00000003-0000-0000-c000-000000000000
-
 az ad app permission add --id $DevAppObjectId --api e406a681-f3d4-42a8-90b6-c2b029497af1 --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f=Scope  #app=azure storage, permission=user_impersonation
 az ad app permission add --id $ProdAppObjectId --api e406a681-f3d4-42a8-90b6-c2b029497af1 --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f=Scope #app=azure storage, permission=user_impersonation
 az ad app permission add --id $DevAppObjectId --api e9f49c6b-5ce5-44c8-925d-015017e9f7ad --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f=Scope  #app=azure data lake, permission=user_impersonation
 az ad app permission add --id $ProdAppObjectId --api e9f49c6b-5ce5-44c8-925d-015017e9f7ad --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f=Scope #app=azure data lake, permission=user_impersonation
 az ad app permission add --id $DevAppObjectId --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope  #app=microsoft graph, permission=User.Read
 az ad app permission add --id $ProdAppObjectId --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope #app=microsoft graph, permission=User.Read
+
+az ad app permission admin-consent --id $DevAppObjectId
+az ad app permission admin-consent --id $ProdAppObjectId
 
 ## evt. tilføj secret til app-reg
 #az ad app credential reset --id $DevAppObjectId
