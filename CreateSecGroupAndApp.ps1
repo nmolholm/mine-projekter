@@ -1,24 +1,25 @@
 param (
-
-	# name of the project 
-	[Parameter(Mandatory=$true)]
-	[string]$projectName,
-	
-	# emails of user(s) to be added as member(s) to ad groups
-	[Parameter(Mandatory=$false)]
-	[string[]]$UserPrincipalName
-
+    # name of the project 
+    [Parameter(Mandatory=$true)]
+    [string]$projectName
 )
 
-# Prompt for user input
-$UserInputOwner = Read-Host "Please write the email(s) of additional user(s) to be added as owner of AD groups separated by comma, type 'Y' to use default values ('mabm@seges.dk', 'ojeadm@seges.dk', 'nmhadm@seges.dk'), or type 'N' to not add any additional users"
+# login to admin azure account
+Connect-AzAccount -TenantId a7c811dd-e3ca-41b4-892b-0c0207e72a80
+
+################################################################################################################
+# Prompt for user input to get AD group owners and members
+################################################################################################################
+
+$UserInputOwner = Read-Host "Enter AD group OWNER email(s) separated by commas, 'D' for default ('examplemail@mail.com'), or 'N' for none"
+$UserInputMember = Read-Host "Enter AD group MEMBER email(s) separated by commas, or 'N' for none"
 
 # Default values
-$defaultOwners = @('mimh@seges.dk', 'nikolajmolholm@gmail.com')
+$defaultOwners = @('nikolajmolholm@nikolajmolholmgmail.onmicrosoft.com')
 
 # Determine the action based on user input
 switch ($UserInputOwner) {
-    'Y' {
+    'D' {
         # Use default values
         $OwnerPrincipalName = $defaultOwners
     }
@@ -38,139 +39,157 @@ switch ($UserInputOwner) {
     }
 }
 
-# Output the final list of owners
-Write-Output "Final list of owners:"
-$OwnerPrincipalName | ForEach-Object { Write-Output $_ }
+# Determine the action based on user input
+switch ($UserInputMember) {
+    'N' {
+        # No additional owners
+        $MemberPrincipalName = @()
+    }
+    default {
+        # Process additional input or validate
+        if ($UserInputMember -split ',' -match '^[\w\.\-]+@[\w\.\-]+\.[a-zA-Z]{2,}$') {
+            # Split the comma-separated values and trim spaces
+            $MemberPrincipalName = $UserInputMember -split ',' | ForEach-Object { $_.Trim() }
+        } else {
+            Write-Host "Invalid input format. Exiting script."
+            exit
+        }
+    }
+}
 
-# create displayname variables for app-regs and ad groups from input argument
-New-Variable -Name "DisplayNameAppDev" -Value "app-dataestate-landing-$projectName-dev" -Option ReadOnly
-New-Variable -Name "DisplayNameAppProd" -Value "app-dataestate-landing-$projectName-prod" -Option ReadOnly
-New-Variable -Name "DisplayNameGroupDev" -Value "sec-azure-dataestate-landing-$projectName-dev" -Option ReadOnly
-New-Variable -Name "DisplayNameGroupProd" -Value "sec-azure-dataestate-landing-$projectName-prod" -Option ReadOnly
-
-# Output variables
-Write-Output $DisplayNameAppDev
-Write-Output $DisplayNameAppProd
-Write-Output $DisplayNameGroupDev
-Write-Output $DisplayNameGroupProd
+################################################################################################################
+# Create new app-regs, ad groups, service principals and print their names
+################################################################################################################
 
 # create new app-regs (dev+prod)
-az ad app create --display-name $DisplayNameAppDev --sign-in-audience AzureADMyOrg 
-az ad app create --display-name $DisplayNameAppProd --sign-in-audience AzureADMyOrg
+$DevApp = New-AzADApplication `
+    -DisplayName "app-dataestate-landing-$projectName-dev" `
+    -SignInAudience AzureADMyOrg
+
+if ($DevApp) {
+    Write-Output "Created AD app:              $($DevApp.DisplayName) ($($DevApp.Id))"
+}
+
+$ProdApp = New-AzADApplication `
+    -DisplayName "app-dataestate-landing-$projectName-prod" `
+    -SignInAudience AzureADMyOrg
+
+if ($ProdApp) {
+    Write-Output "Created AD app:              $($ProdApp.DisplayName) ($($ProdApp.Id))"
+}
 
 # create new ad groups (dev+prod)
-az ad group create --display-name $DisplayNameGroupDev --mail-nickname $DisplayNameGroupDev --description "Data Estate Landing - app reg dev group"
-az ad group create --display-name $DisplayNameGroupProd --mail-nickname $DisplayNameGroupProd --description "Data Estate Landing - app reg prod group"
+$DevGroup = New-AzADGroup `
+    -DisplayName "sec-azure-dataestate-landing-$projectName-dev" `
+    -MailNickname $DisplayNameGroupDev `
+    -Description "Data Estate Landing - app reg dev group"
 
-################################################################################################################
-# Get object IDs of app-regs, ad groups and service principals
-################################################################################################################
+if ($DevGroup) {
+    Write-Output "Created AD group:            $($DevGroup.DisplayName) ($($DevGroup.Id))"
+}
 
-# get object IDs of app-regs
-# get list details and save the output
-$DevAppDetailsJson = az ad app list --display-name $DisplayNameAppDev | Out-String
-$ProdAppDetailsJson = az ad app list --display-name $DisplayNameAppProd | Out-String
+$ProdGroup = New-AzADGroup `
+    -DisplayName "sec-azure-dataestate-landing-$projectName-prod" `
+    -MailNickname $DisplayNameGroupProd `
+    -Description "Data Estate Landing - app reg prod group"
 
-# Convert the JSON output to a PowerShell object and extract the object ID
-$DevAppObjectId = ($DevAppDetailsJson | ConvertFrom-Json).id
-$ProdAppObjectId = ($ProdAppDetailsJson | ConvertFrom-Json).id
-
-# get object IDs of ad groups
-$DevGroupObjectId = az ad group show --group $DisplayNameGroupDev --query id --output tsv
-$ProdGroupObjectId = az ad group show --group $DisplayNameGroupProd --query id --output tsv
+if ($ProdGroup) {
+    Write-Output "Created AD group:            $($ProdGroup.DisplayName) ($($ProdGroup.Id))"
+}
 
 # create service principals for app-regs
-az ad sp create --id $DevAppObjectId
-az ad sp create --id $ProdAppObjectId
+$DevSp = New-AzADServicePrincipal -ApplicationId $DevApp.AppId
 
-# get list details and save the output 
-$DevSpDetailsJson = az ad sp list --display-name $DisplayNameAppDev | Out-String
-$ProdSpDetailsJson = az ad sp list --display-name $DisplayNameAppProd | Out-String
+if ($DevSp) {
+    Write-Output "Created service principal:   $($DevSp.DisplayName) ($($DevSp.Id))"
+}
 
-# convert the json output to a powershell object and extract the object ID
-$DevSpObjectId = ($DevSpDetailsJson | ConvertFrom-Json).id
-$ProdSpObjectId = ($ProdSpDetailsJson | ConvertFrom-Json).id
+$ProdSp = New-AzADServicePrincipal -ApplicationId $ProdApp.AppId
 
-# Output variables
-Write-Output $DevAppObjectId
-Write-Output $ProdAppObjectId
-Write-Output $DevGroupObjectId
-Write-Output $ProdGroupObjectId
-Write-Output $DevSpObjectId
-Write-Output $ProdSpObjectId
+if ($ProdSp) {
+    Write-Output "Created service principal:   $($ProdSp.DisplayName) ($($ProdSp.Id))"
+}
 
 ################################################################################################################
 # Add app-regs to ad groups and ad groups to 'sec-azure-dataestate-landing'
 ################################################################################################################
 
-# tilføj service principal som member til ad group
-az ad group member add --group $DisplayNameGroupDev --member-id $DevSpObjectId
-az ad group member add --group $DisplayNameGroupProd --member-id $ProdSpObjectId
+# add service principal as member to ad group
+Add-AzADGroupMember -TargetGroupObjectId $DevGroup.Id -MemberObjectId $DevSp.Id
+Add-AzADGroupMember -TargetGroupObjectId $ProdGroup.Id -MemberObjectId $ProdSp.Id
 
 # add new ad groups as members to 'sec-azure-dataestate-landing'
-az ad group member add --group sec-azure-dataestate-landing --member-id $DevGroupObjectId
-az ad group member add --group sec-azure-dataestate-landing --member-id $ProdGroupObjectId
+$LandingGroup = Get-AzADGroup -DisplayName "sec-azure-dataestate-landing"
+
+Add-AzADGroupMember -TargetGroupObjectId $LandingGroup.Id -MemberObjectId $DevGroup.Id
+Add-AzADGroupMember -TargetGroupObjectId $LandingGroup.Id -MemberObjectId $ProdGroup.Id
 
 ################################################################################################################
 # Add permissions and secrets to app-regs
 ################################################################################################################
 
 # add permissions (azure storage + azure data lake)
-az ad app permission add --id $DevAppObjectId --api e406a681-f3d4-42a8-90b6-c2b029497af1 --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f=Scope  #app=azure storage, permission=user_impersonation
-az ad app permission add --id $ProdAppObjectId --api e406a681-f3d4-42a8-90b6-c2b029497af1 --api-permissions 03e0da56-190b-40ad-a80c-ea378c433f7f=Scope #app=azure storage, permission=user_impersonation
-az ad app permission add --id $DevAppObjectId --api e9f49c6b-5ce5-44c8-925d-015017e9f7ad --api-permissions 9f15d22d-3cdf-430f-ba48-f75401c0408e=Scope  #app=azure data lake, permission=user_impersonation
-az ad app permission add --id $ProdAppObjectId --api e9f49c6b-5ce5-44c8-925d-015017e9f7ad --api-permissions 9f15d22d-3cdf-430f-ba48-f75401c0408e=Scope #app=azure data lake, permission=user_impersonation
-az ad app permission add --id $DevAppObjectId --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope  #app=microsoft graph, permission=User.Read
-az ad app permission add --id $ProdAppObjectId --api 00000003-0000-0000-c000-000000000000 --api-permissions e1fe6dd8-ba31-4d61-89e7-88639da4683d=Scope #app=microsoft graph, permission=User.Read
+$StorageApiId = "e406a681-f3d4-42a8-90b6-c2b029497af1"
+$DataLakeApiId = "e9f49c6b-5ce5-44c8-925d-015017e9f7ad"
+$GraphApiId = "00000003-0000-0000-c000-000000000000"
 
-## evt. tilføj secret til app-reg
-#az ad app credential reset --id $DevAppObjectId
-#az ad app credential reset --id $ProdAppObjectId
+$StoragePermissionId = "03e0da56-190b-40ad-a80c-ea378c433f7f"
+$DataLakePermissionId = "9f15d22d-3cdf-430f-ba48-f75401c0408e"
+$GraphPermissionId = "e1fe6dd8-ba31-4d61-89e7-88639da4683d"
+
+Add-AzADAppPermission -ObjectId $DevApp.Id -ApiId $StorageApiId -PermissionId $StoragePermissionId
+Add-AzADAppPermission -ObjectId $ProdApp.Id -ApiId $StorageApiId -PermissionId $StoragePermissionId
+Add-AzADAppPermission -ObjectId $DevApp.Id -ApiId $DataLakeApiId -PermissionId $DataLakePermissionId
+Add-AzADAppPermission -ObjectId $ProdApp.Id -ApiId $DataLakeApiId -PermissionId $DataLakePermissionId
+Add-AzADAppPermission -ObjectId $DevApp.Id -ApiId $GraphApiId -PermissionId $GraphPermissionId
+Add-AzADAppPermission -ObjectId $ProdApp.Id -ApiId $GraphApiId -PermissionId $GraphPermissionId
+
+## optionally add secret to app-reg
+# New-AzADAppCredential -ObjectId $DevAppObjectId
+# New-AzADAppCredential -ObjectId $ProdAppObjectId
 
 ################################################################################################################
-# Add users as members and owners to ad groups
+# Add members and owners to ad groups
 ################################################################################################################
 
-### Tilføj user(s) som member(s) til ad group, hvis UserPrincipalName parameteren indeholder værdier
-if ($UserPrincipalName -and $UserPrincipalName.Count -gt 0) {
+# Add user(s) as member(s) to ad group, if UserPrincipalName parameter contains values
+if ($MemberPrincipalName -and $MemberPrincipalName.Count -gt 0) {
     # Loop over each principal name in the array
-    foreach ($Name in $UserPrincipalName) {
-		
-		# show user details and capture the output
-		$UserDetailsJson = az ad user show --id $Name | Out-String
+    foreach ($Name in $MemberPrincipalName) {
+        # get user details
+        $User = Get-AzADUser -UserPrincipalName $Name
 
-		# Extract the object ID
-        $UserObjectId = ($UserDetailsJson | ConvertFrom-Json).id
-	
-		# use object id when adding user as a member to ad groups
-        az ad group member add --group $DisplayNameGroupDev --member-id $UserObjectId
-		az ad group member add --group $DisplayNameGroupProd --member-id $UserObjectId
+        # add user as a member to ad groups
+        try {
+            Add-AzADGroupMember -TargetGroupObjectId $DevGroup.Id -MemberObjectId $User.Id -ErrorAction Stop
+            Add-AzADGroupMember -TargetGroupObjectId $ProdGroup.Id -MemberObjectId $User.Id -ErrorAction Stop
+            Write-Output "$Name added as member to dev/prod ad groups"
+
+        } catch {
+            Write-Output "Failed to add user $Name as member. Error: $_"
+        }
     }
-	
 } else {
-
-    Write-Output "No users were added as a member to ad groups"
-	
+    Write-Output "No members added to groups"
 }
 
-### Tilføj user(s) som owner(s) til ad group, hvis OwnerPrincipalName parameteren indeholder værdier
+# Add user(s) as owner(s) to ad group, if OwnerPrincipalName parameter contains values
 if ($OwnerPrincipalName -and $OwnerPrincipalName.Count -gt 0) {
     # Loop over each principal name in the array
     foreach ($Name in $OwnerPrincipalName) {
-		
-		# show user details and capture the output
-		$OwnerDetailsJson = az ad user show --id $Name | Out-String
-		
-		# Extract the object ID
-		$OwnerObjectId = ($OwnerDetailsJson | ConvertFrom-Json).id
-	
-		# use object id when adding user as a member to ad groups
-        az ad group owner add --group $DisplayNameGroupDev --owner-object-id $OwnerObjectId
-		az ad group owner add --group $DisplayNameGroupProd --owner-object-id $OwnerObjectId
-    }
-	
-} else {
+        # get user details
+        $Owner = Get-AzADUser -UserPrincipalName $Name
 
-    Write-Output "No users were added as an additional owner to ad groups"
-	
+        # add user as an owner to ad groups
+        try {
+            New-AzADGroupOwner -GroupId $DevGroup.Id -OwnerId $Owner.Id -ErrorAction Stop
+            New-AzADGroupOwner -GroupId $ProdGroup.Id -OwnerId $Owner.Id -ErrorAction Stop
+            Write-Output "$Name added as owner to dev/prod ad groups"
+
+        } catch {
+            Write-Output "Failed to add user $Name as owner. Error: $_"
+        }
+    }
+} else {
+    Write-Output "No owners added to ad groups"
 }
