@@ -81,7 +81,7 @@ if ($ProdApp) {
 # create new ad groups (dev+prod)
 $DevGroup = New-AzADGroup `
     -DisplayName "sec-azure-dataestate-landing-$projectName-dev" `
-    -MailNickname $DisplayNameGroupDev `
+    -MailNickname "sec-azure-dataestate-landing-$projectName-dev" `
     -Description "Data Estate Landing - app reg dev group"
 
 if ($DevGroup) {
@@ -90,7 +90,7 @@ if ($DevGroup) {
 
 $ProdGroup = New-AzADGroup `
     -DisplayName "sec-azure-dataestate-landing-$projectName-prod" `
-    -MailNickname $DisplayNameGroupProd `
+    -MailNickname "sec-azure-dataestate-landing-$projectName-prod" `
     -Description "Data Estate Landing - app reg prod group"
 
 if ($ProdGroup) {
